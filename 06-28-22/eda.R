@@ -65,11 +65,63 @@ paygap %>%
   )
 
 
-emp <- paygap %>%
+paygap %>%
   filter(employer_size == "20,000 or more", year == 2022) %>%
   group_by(employer_name) %>%
   slice(which.max(as.Date(date_submitted))) %>%
   ungroup() %>%
   arrange(desc(diff_mean_hourly_percent)) %>%
-  select(employer_name, diff_mean_hourly_percent)
+  select(employer_name, diff_mean_hourly_percent) %>%
+  mutate(
+    name_clean = employer_name %>% 
+      str_remove("LIMITED") %>% 
+      str_remove("PLC") %>%
+      str_remove("P.L.C") %>%
+      str_to_title()
+  )
+
+
+paygap %>%
+  filter(employer_size == "20,000 or more", year == 2022) %>%
+  group_by(employer_name) %>%
+  slice(which.max(as.Date(date_submitted))) %>%
+  ungroup() %>%
+  mutate(
+    ind = ifelse(diff_mean_hourly_percent > 0, TRUE, FALSE),
+    name_clean = employer_name %>% 
+      str_remove("LIMITED") %>% 
+      str_remove("PLC") %>%
+      str_remove("P.L.C") %>%
+      str_to_title()
+    ) %>%
+  ggplot(
+    aes(
+      y = fct_reorder(name_clean, diff_mean_hourly_percent), 
+      x = diff_mean_hourly_percent,
+      fill = ind
+    )
+  ) +
+  geom_col() +
+  scale_fill_manual(values = c("dodgerblue3", "firebrick3")) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  annotate("text", y = 52, x = 40, size = 2.5, 
+           label = "British Airways PLC has the largest paygap; \n men are payed 45.4% more than women on average") +
+  annotate("text", y = 6, x = -7, size = 2.5,
+           label = "Openreach Limited pays women \n 10.6% more than men on average") +
+  annotate("point", y = 55, x = 45.4, size = 2) +
+  annotate("point", y = 1, x = -10.6, size = 2) +
+  labs(
+    y = NULL,
+    x = "Average percent difference in male and female hourly pay",
+    title = "Wage discrepency in large* UK companies in 2022",
+    subtitle = "*Companies with over 20,000 employees",
+    caption = "Source: gender-pay-gap.service.gov.uk. via TidyTuesday" 
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 5, hjust = 0),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    legend.position = "none"
+  )
   
